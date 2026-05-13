@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Content Marketing Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #0f0f13;
+  --surface: #1a1a24;
+  --surface2: #22222e;
+  --border: #2e2e3e;
+  --accent: #7c3aed;
+  --accent2: #a855f7;
+  --red: #e94560;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --text: #f0f0f5;
+  --muted: #8888a0;
+  --radius: 14px;
+  --sidebar-w: 270px;
+  --header-h: 60px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── HEADER ── */
+header {
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.sidebar-toggle {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background var(--transition);
+  color: var(--text);
+}
+.sidebar-toggle:hover { background: var(--border); }
+.logo {
+  font-size: 17px; font-weight: 700;
+  background: linear-gradient(135deg, #a855f7, #e94560);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.3px;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+#clock {
+  font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+#server-badge {
+  font-size: 11px; padding: 5px 13px; border-radius: 99px;
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer; border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+#server-badge.online  { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.3); }
+#server-badge.offline { background: rgba(233,69,96,0.15);  color: #fb7185; border-color: rgba(233,69,96,0.3); }
+
+/* ── LAYOUT ── */
+.layout {
+  display: flex;
+  padding-top: var(--header-h);
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  height: calc(100vh - var(--header-h));
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition), min-width var(--transition), opacity var(--transition), transform var(--transition);
+  z-index: 50;
+  padding: 16px 0;
+}
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-10px);
+}
+.sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.sidebar-header .s-title {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+}
+.clear-hist {
+  font-size: 11px; color: var(--red);
+  cursor: pointer; font-weight: 500;
+  transition: opacity 0.2s;
+}
+.clear-hist:hover { opacity: 0.7; }
+#history-list { padding: 0 8px; }
+.hist-item {
+  padding: 10px 10px; border-radius: 10px;
+  cursor: pointer; margin-bottom: 4px;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.hist-item:hover { background: var(--surface2); border-color: var(--border); }
+.hist-item .h-brief {
+  font-size: 12px; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; color: var(--text);
+  margin-bottom: 4px;
+}
+.hist-item .h-meta { font-size: 10px; color: var(--muted); display: flex; gap: 5px; flex-wrap: wrap; }
+.h-tag {
+  background: var(--surface2); padding: 1px 7px;
+  border-radius: 99px; font-size: 10px; color: var(--muted);
+}
+.no-history { font-size: 12px; color: var(--muted); text-align: center; padding: 28px 16px; line-height: 1.7; }
+
+/* ── MAIN ── */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  transition: margin-left var(--transition);
+  padding: 28px;
+  max-width: 100%;
+}
+.main.expanded { margin-left: 0; }
+.main-inner { max-width: 760px; margin: 0 auto; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 2px; margin-bottom: 24px;
+  background: var(--surface);
+  border-radius: 12px; padding: 4px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+.tab {
+  padding: 8px 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border-radius: 9px;
+  color: var(--muted); transition: all 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--accent); color: white; font-weight: 600; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── INPUT CARD ── */
+.input-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+.card-title {
+  font-size: 15px; font-weight: 600; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title .icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--red));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.field-label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  display: block; margin-bottom: 6px; margin-top: 14px;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+textarea {
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 14px; font-family: inherit;
+  background: var(--surface2); color: var(--text); outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical; min-height: 90px;
+}
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+.char-count { font-size: 11px; color: var(--muted); text-align: right; margin-top: 4px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+select {
+  width: 100%; padding: 10px 13px;
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px; font-family: inherit;
+  background: var(--surface2); color: var(--text);
+  outline: none; cursor: pointer;
+  transition: border-color 0.2s;
+}
+select:focus { border-color: var(--accent); }
+
+/* ── PLATFORM GRID ── */
+.platform-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-top: 10px;
+}
+.plat-check {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 6px; text-align: center; cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  transition: all 0.2s; user-select: none;
+  color: var(--muted); background: var(--surface2);
+}
+.plat-check:hover { border-color: var(--accent2); color: var(--text); }
+.plat-check.selected {
+  border-color: var(--accent);
+  background: rgba(124,58,237,0.15);
+  color: var(--accent2); font-weight: 600;
+}
+.plat-check .p-ico { font-size: 20px; display: block; margin-bottom: 5px; }
+
+/* ── BUTTONS ── */
+.btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.btn {
+  padding: 11px 24px; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+  font-family: inherit;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #9333ea);
+  color: white;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(124,58,237,0.5);
+  transform: translateY(-1px);
+}
+.btn-outline {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+}
+.btn-outline:hover { background: var(--border); }
+
+/* ── ERROR ── */
+#error-msg {
+  display: none;
+  background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3);
+  border-radius: 10px; padding: 12px 16px; font-size: 13px;
+  color: #fb7185; margin-bottom: 16px;
+}
+
+/* ── METRICS ── */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.metric {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  position: relative; overflow: hidden;
+}
+.metric::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--red));
+}
+.metric .lbl { font-size: 10px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
+.metric .val { font-size: 22px; font-weight: 700; }
+
+/* ── PROGRESS ── */
+#progress-wrap { margin-bottom: 20px; display: none; }
+.bar-bg { background: var(--surface2); border-radius: 99px; height: 6px; overflow: hidden; border: 1px solid var(--border); }
+.bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--red));
+  height: 100%; width: 0%; transition: width 0.5s ease;
+  border-radius: 99px;
+}
+#progress-label { font-size: 12px; color: var(--muted); margin-top: 7px; }
+
+/* ── ASSET CARDS ── */
+.asset-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px; overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.asset-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(124,58,237,0.2); }
+.asset-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.asset-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.asset-title .a-ico {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.ico-blog   { background: rgba(124,58,237,0.2); }
+.ico-tweet  { background: rgba(59,130,246,0.2); }
+.ico-insta  { background: rgba(236,72,153,0.2); }
+.ico-seo    { background: rgba(16,185,129,0.2); }
+.ico-img    { background: rgba(245,158,11,0.2); }
+
+.actions { display: flex; gap: 8px; align-items: center; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 500; }
+.badge.waiting    { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.badge.generating { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.badge.done       { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.badge.error      { background: rgba(233,69,96,0.15);  color: #fb7185; border: 1px solid rgba(233,69,96,0.3); }
+
+.copy-btn {
+  font-size: 11px; padding: 4px 12px; border: 1px solid var(--border);
+  border-radius: 7px; background: var(--surface); cursor: pointer; color: var(--muted);
+  display: none; transition: all 0.15s; font-family: inherit;
+}
+.copy-btn:hover { background: var(--border); color: var(--text); }
+.asset-body {
+  padding: 16px 18px; font-size: 13px; line-height: 1.9;
+  color: var(--muted); min-height: 60px; white-space: pre-wrap;
+}
+.asset-body.filled { color: var(--text); }
+
+/* ── IMAGE SECTION ── */
+.image-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 14px; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.image-section:hover { border-color: var(--accent); }
+.image-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.image-head-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.image-wrap { padding: 18px; }
+.img-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface2); max-width: 500px; margin: 0 auto; }
+.img-card img { width: 100%; height: 270px; object-fit: cover; display: block; }
+.img-label { padding: 11px 14px; font-size: 12px; color: var(--muted); background: var(--surface2); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.img-placeholder { width: 100%; height: 270px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; gap: 10px; }
+.img-placeholder .spin { font-size: 28px; animation: spin 1.2s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.img-download-btn { font-size: 11px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); cursor: pointer; color: var(--muted); text-decoration: none; transition: all 0.15s; }
+.img-download-btn:hover { background: var(--border); color: var(--text); }
+
+/* ── EMPTY STATE ── */
+#empty-state {
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  padding: 48px 20px; text-align: center; color: var(--muted);
+  font-size: 14px; margin-bottom: 20px;
+  background: var(--surface);
+}
+#empty-state .big { font-size: 44px; margin-bottom: 14px; opacity: 0.6; }
+#empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+/* ── HISTORY TAB ── */
+.hist-full-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+  cursor: pointer; transition: all 0.2s;
+}
+.hist-full-item:hover { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(124,58,237,0.2); }
+.hist-full-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.hist-full-brief { font-size: 14px; font-weight: 600; }
+.hist-full-meta { font-size: 11px; color: var(--muted); }
+.hist-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.hist-preview { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* ── ABOUT TAB ── */
+.about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 14px; }
+.about-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.about-card p { font-size: 13px; color: var(--muted); line-height: 1.75; margin-bottom: 8px; }
+.tech-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+.tech-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+  transition: border-color 0.2s;
+}
+.tech-item:hover { border-color: var(--accent); }
+.tech-item .t-name { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.tech-item .t-desc { font-size: 12px; color: var(--muted); }
+.feature-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.feature-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.feature-item::before { content: '✓'; color: var(--green); font-weight: 700; }
+
+#download-btn { display: none; margin-top: 16px; }
+
+@media (max-width: 768px) {
+  .sidebar { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
+  .main { margin-left: 0 !important; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .platform-grid { grid-template-columns: repeat(2,1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .tech-grid, .feature-list { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle History">☰</button>
+    <div class="logo">✦ AI Content Engine</div>
+  </div>
+  <div class="header-right">
+    <span id="clock"></span>
+    <div id="server-badge" onclick="checkHealth()">● Checking...</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="s-title">Campaign History</span>
+      <span class="clear-hist" onclick="clearHistory()">Clear All</span>
+    </div>
+    <div id="history-list">
+      <div class="no-history">No campaigns yet.<br/>Generate one to see history here.</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+    <div class="main-inner">
+
+      <!-- TABS -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('generate')">⚡ Generate</div>
+        <div class="tab" onclick="switchTab('history')">📋 History</div>
+        <div class="tab" onclick="switchTab('about')">ℹ About</div>
+      </div>
+
+      <!-- TAB: GENERATE -->
+      <div class="tab-content active" id="tab-generate">
+
+        <div class="input-card">
+          <div class="card-title">
+            <div class="icon">🚀</div>
+            Campaign Details
+          </div>
+
+          <label class="field-label">Campaign Brief *</label>
+          <textarea id="brief"
+            placeholder='e.g. "Launch campaign for eco-friendly bamboo water bottles targeting Gen Z"'
+            rows="3" oninput="updateCharCount()"></textarea>
+          <div class="char-count"><span id="char-count">0</span> / 300 characters</div>
+
+          <div class="grid-2">
+            <div>
+              <label class="field-label">Tone</label>
+              <select id="tone">
+                <option value="professional">🎯 Professional</option>
+                <option value="casual and friendly">😊 Casual & Friendly</option>
+                <option value="bold and energetic">⚡ Bold & Energetic</option>
+                <option value="luxury and refined">💎 Luxury & Refined</option>
+                <option value="playful and fun">🎉 Playful & Fun</option>
+                <option value="inspirational">✨ Inspirational</option>
+                <option value="minimalist">◽ Minimalist</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Image Style</label>
+              <select id="img-style">
+                <option value="photorealistic">📷 Photorealistic</option>
+                <option value="digital art">🎨 Digital Art</option>
+                <option value="minimalist">◽ Minimalist</option>
+                <option value="cinematic">🎬 Cinematic</option>
+                <option value="watercolor">🖌 Watercolor</option>
+                <option value="3D render">🧊 3D Render</option>
+                <option value="flat design illustration">📐 Flat Illustration</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="field-label">Select Platforms</label>
+          <div class="platform-grid">
+            <div class="plat-check selected" id="plat-blog" onclick="togglePlatform('blog')">
+              <span class="p-ico">📝</span>Blog
+            </div>
+            <div class="plat-check selected" id="plat-tweets" onclick="togglePlatform('tweets')">
+              <span class="p-ico">🐦</span>Tweets
+            </div>
+            <div class="plat-check selected" id="plat-instagram" onclick="togglePlatform('instagram')">
+              <span class="p-ico">📸</span>Instagram
+            </div>
+            <div class="plat-check selected" id="plat-seo" onclick="togglePlatform('seo')">
+              <span class="p-ico">🔍</span>SEO
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="gen-btn" onclick="generateCampaign()">⚡ Generate Campaign</button>
+            <button class="btn btn-outline" onclick="resetAll()">↺ Reset</button>
+          </div>
+        </div>
+
+        <div id="error-msg"></div>
+
+        <!-- METRICS -->
+        <div class="metrics">
+          <div class="metric"><div class="lbl">Platforms</div><div class="val" id="m-platforms">0 / 4</div></div>
+          <div class="metric"><div class="lbl">Words</div><div class="val" id="m-words">0</div></div>
+          <div class="metric"><div class="lbl">Image</div><div class="val" id="m-images">0 / 1</div></div>
+          <div class="metric"><div class="lbl">Status</div><div class="val" id="m-status" style="font-size:14px;">Waiting</div></div>
+        </div>
+
+        <!-- PROGRESS -->
+        <div id="progress-wrap">
+          <div class="bar-bg"><div class="bar-fill" id="bar"></div></div>
+          <div id="progress-label">Starting...</div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="empty-state">
+          <div class="big">✦</div>
+          <h3>Ready to Generate</h3>
+          Fill in the campaign details above and click <strong>Generate Campaign</strong><br/>
+          to produce Blog, Tweets, Instagram, SEO &amp; AI Image instantly.
+        </div>
+
+        <!-- OUTPUT CARDS -->
+        <div id="cards-wrap" style="display:none;">
+
+          <div class="asset-card" id="card-blog">
+            <div class="asset-head">
+              <div class="asset-title">
+                <div class="a-ico ico-blog">📝</div> Blog Post
+              </div>
+              <div class="actions">
+                <span class="badge waiting" id="badge-blog">Waiting</span>
+                <button class="copy-btn" id="copy-blog" onclick="copyText('body-blog','copy-blog')">Copy</button>
+              </div>
+            </div>
+            <div class="asset-body" id="body-blog">Generating content...</div>
+          </div>
+
+          <div class="asset-card" id="card-tweets">
+            <div class="asset-head">
+              <div class="asset-title">
+                <div class="a-ico ico-tweet">🐦</div> Tweet Variants
+              </div>
+              <div class="actions">
+                <span class="badge waiting" id="badge-tweets">Waiting</span>
+                <button class="copy-btn" id="copy-tweets" onclick="copyText('body-tweets','copy-tweets')">Copy</button>
+              </div>
+            </div>
+            <div class="asset-body" id="body-tweets">Generating content...</div>
+          </div>
+
+          <div class="asset-card" id="card-instagram">
+            <div class="asset-head">
+              <div class="asset-title">
+                <div class="a-ico ico-insta">📸</div> Instagram Caption
+              </div>
+              <div class="actions">
+                <span class="badge waiting" id="badge-instagram">Waiting</span>
+                <button class="copy-btn" id="copy-instagram" onclick="copyText('body-instagram','copy-instagram')">Copy</button>
+              </div>
+            </div>
+            <div class="asset-body" id="body-instagram">Generating content...</div>
+          </div>
+
+          <div class="asset-card" id="card-seo">
+            <div class="asset-head">
+              <div class="asset-title">
+                <div class="a-ico ico-seo">🔍</div> SEO Metadata
+              </div>
+              <div class="actions">
+                <span class="badge waiting" id="badge-seo">Waiting</span>
+                <button class="copy-btn" id="copy-seo" onclick="copyText('body-seo','copy-seo')">Copy</button>
+              </div>
+            </div>
+            <div class="asset-body" id="body-seo">Generating content...</div>
+          </div>
+
+          <!-- AI IMAGE -->
+          <div class="image-section">
+            <div class="image-head">
+              <div class="image-head-title">
+                <div class="a-ico ico-img">🎨</div> AI Generated Campaign Image
+              </div>
+              <span class="badge waiting" id="badge-images">Waiting</span>
+            </div>
+            <div class="image-wrap">
+              <div class="img-card">
+                <div class="img-placeholder" id="img-placeholder-1">
+                  <span style="font-size:36px;opacity:0.4">🖼️</span>
+                  <span>Image will appear here</span>
+                </div>
+                <img id="img-1" src="" alt="Campaign Image" style="display:none;"
+                     onload="imageLoaded()" onerror="imageError()"/>
+                <div class="img-label" id="img-label-1" style="display:none;">
+                  <span>📷 Promotional Campaign Image</span>
+                  <a id="img-dl-1" href="#" download="campaign_image.jpg"
+                     class="img-download-btn" target="_blank">⬇ Save Image</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end cards-wrap -->
+
+        <button class="btn btn-outline" id="download-btn" onclick="downloadAll()">
+          ⬇ Download All Text Content
+        </button>
+
+      </div><!-- end tab-generate -->
+
+      <!-- TAB: HISTORY -->
+      <div class="tab-content" id="tab-history">
+        <div id="history-full-list">
+          <div id="empty-state" style="display:block;">
+            <div class="big">📋</div>
+            <h3>No History Yet</h3>
+            Go to Generate tab to create your first campaign.
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: ABOUT -->
+      <div class="tab-content" id="tab-about">
+        <div class="about-card">
+          <h3>🚀 About This Project</h3>
+          <p>This is a <strong>Multi-Modal AI Content Marketing Engine</strong> built as part of the <strong>Infotact Solutions GenAI Internship Program</strong>.</p>
+          <p>It uses local AI (Ollama + phi3) to generate platform-optimized marketing content including blog posts, tweets, Instagram captions, SEO metadata, and AI-generated campaign images — all from a single brief.</p>
+        </div>
+        <div class="about-card">
+          <h3>🛠️ Technology Stack</h3>
+          <div class="tech-grid">
+            <div class="tech-item"><div class="t-name">🐍 FastAPI</div><div class="t-desc">High-performance async Python API</div></div>
+            <div class="tech-item"><div class="t-name">🦙 Ollama + phi3</div><div class="t-desc">Local AI — no API key needed</div></div>
+            <div class="tech-item"><div class="t-name">🎨 Pollinations.ai</div><div class="t-desc">Free AI image generation</div></div>
+            <div class="tech-item"><div class="t-name">⚡ HTML / CSS / JS</div><div class="t-desc">Responsive dashboard frontend</div></div>
+          </div>
+        </div>
+        <div class="about-card">
+          <h3>📋 Features</h3>
+          <div class="feature-list">
+            <div class="feature-item">Blog Post (250 words)</div>
+            <div class="feature-item">3 Tweet variants</div>
+            <div class="feature-item">Instagram caption</div>
+            <div class="feature-item">SEO metadata</div>
+            <div class="feature-item">AI image generation</div>
+            <div class="feature-item">Campaign history</div>
+            <div class="feature-item">Platform selector</div>
+            <div class="feature-item">Download as .txt</div>
+            <div class="feature-item">Copy per asset</div>
+            <div class="feature-item">Collapsible sidebar</div>
+          </div>
+        </div>
+        <div class="about-card">
+          <h3>👨‍💻 Intern Details</h3>
+          <p><strong>Program:</strong> Infotact Technical Internship</p>
+          <p><strong>Project:</strong> Project 3 — Media & Entertainment</p>
+          <p><strong>Location:</strong> Bengaluru, Karnataka</p>
+        </div>
+      </div>
+
+    </div><!-- end main-inner -->
+  </div><!-- end main -->
+</div><!-- end layout -->
+
+<script>
+const API = "http://127.0.0.1:8000";
+let campaignHistory = JSON.parse(localStorage.getItem("campaignHistory") || "[]");
+let selectedPlatforms = ["blog","tweets","instagram","seo"];
+let sidebarOpen = true;
+
+/* ── Clock ── */
+setInterval(() => {
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+/* ── Sidebar Toggle ── */
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const main    = document.getElementById("main");
+  sidebarOpen = !sidebarOpen;
+  if (sidebarOpen) {
+    sidebar.classList.remove("collapsed");
+    main.classList.remove("expanded");
+  } else {
+    sidebar.classList.add("collapsed");
+    main.classList.add("expanded");
+  }
+}
+
+/* ── Tabs ── */
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t,i) => {
+    const names = ["generate","history","about"];
+    t.classList.toggle("active", names[i] === name);
+  });
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  if (name === "history") renderHistoryTab();
+}
+
+/* ── Platform Toggle ── */
+function togglePlatform(p) {
+  const el = document.getElementById("plat-" + p);
+  if (selectedPlatforms.includes(p)) {
+    if (selectedPlatforms.length === 1) return;
+    selectedPlatforms = selectedPlatforms.filter(x => x !== p);
+    el.classList.remove("selected");
+  } else {
+    selectedPlatforms.push(p);
+    el.classList.add("selected");
+  }
+  document.getElementById("m-platforms").textContent = "0 / " + selectedPlatforms.length;
+}
+
+/* ── Char Count ── */
+function updateCharCount() {
+  document.getElementById("char-count").textContent = document.getElementById("brief").value.length;
+}
+
+/* ── Health Check ── */
+async function checkHealth() {
+  const badge = document.getElementById("server-badge");
+  badge.textContent = "● Checking..."; badge.className = "";
+  try {
+    const res = await fetch(`${API}/health`, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    badge.textContent = data.status === "ok" ? "● Server Online" : "● Ollama Offline";
+    badge.className   = data.status === "ok" ? "online" : "offline";
+  } catch {
+    badge.textContent = "● Server Offline";
+    badge.className   = "offline";
+  }
+}
+
+/* ── Helpers ── */
+function setBadge(id, type, label) {
+  const el = document.getElementById("badge-" + id);
+  if (!el) return;
+  el.className = "badge " + type; el.textContent = label;
+}
+function setBody(id, text) {
+  const el = document.getElementById("body-" + id);
+  if (!el) return;
+  el.textContent = text; el.className = "asset-body filled";
+  const cb = document.getElementById("copy-" + id);
+  if (cb) cb.style.display = "inline-block";
+}
+function setProgress(pct, label) {
+  document.getElementById("bar").style.width = pct + "%";
+  document.getElementById("progress-label").textContent = label;
+}
+function updateMetrics(done, allContent, imgDone) {
+  document.getElementById("m-platforms").textContent = done + " / " + selectedPlatforms.length;
+  const words = Object.values(allContent).join(" ").split(/\s+/).filter(Boolean).length;
+  document.getElementById("m-words").textContent = words;
+  document.getElementById("m-images").textContent = imgDone + " / 1";
+  const allDone = done === selectedPlatforms.length && imgDone === 1;
+  document.getElementById("m-status").textContent =
+    done === 0 && imgDone === 0 ? "Waiting" : allDone ? "Complete ✓" : "Generating...";
+}
+function showError(msg) {
+  const el = document.getElementById("error-msg");
+  el.textContent = "⚠ " + msg; el.style.display = "block";
+}
+function hideError() { document.getElementById("error-msg").style.display = "none"; }
+
+/* ── Image ── */
+function buildImagePrompt(brief, style) {
+  return `${brief}, ${style} style, high quality marketing campaign visual, professional advertising photography`;
+}
+// Tracks which history slot the currently-loading image belongs to
+let _pendingImageHistoryIndex = 0;
+
+function generateImage(brief, style, historyIndex = 0) {
+  _pendingImageHistoryIndex = historyIndex;
+  setBadge("images", "generating", "Generating...");
+  document.getElementById("m-images").textContent = "0 / 1";
+  const ph = document.getElementById("img-placeholder-1");
+  ph.innerHTML = `<span class="spin">⏳</span><span>Generating AI image...</span>`;
+  ph.style.display = "flex";
+  document.getElementById("img-1").style.display = "none";
+  document.getElementById("img-label-1").style.display = "none";
+  const prompt = buildImagePrompt(brief, style);
+  const seed   = Math.floor(Math.random() * 99999);
+  const url    = `${API}/image?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+  document.getElementById("img-1").src = url;
+  document.getElementById("img-dl-1").href = url;
+}
+function imageLoaded() {
+  const imgEl = document.getElementById("img-1");
+  // Guard: ignore the initial src="" load event
+  if (!imgEl.src || imgEl.src === window.location.href) return;
+
+  document.getElementById("img-placeholder-1").style.display = "none";
+  imgEl.style.display = "block";
+  document.getElementById("img-label-1").style.display = "flex";
+  document.getElementById("m-images").textContent = "1 / 1";
+  setBadge("images", "done", "Done ✓");
+  setProgress(100, "All assets generated ✓");
+  document.getElementById("m-status").textContent = "Complete ✓";
+  document.getElementById("download-btn").style.display = "inline-block";
+
+  // ★ Fetch the image as a blob → convert to base64 (avoids CORS canvas taint)
+  const currentSrc = imgEl.src;
+  fetch(currentSrc)
+    .then(r => r.blob())
+    .then(blob => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    }))
+    .then(base64 => {
+      const idx = _pendingImageHistoryIndex;
+      if (campaignHistory[idx]) {
+        campaignHistory[idx].imageBase64 = base64;
+        // Also update the download link to use the base64
+        document.getElementById("img-dl-1").href = base64;
+        try {
+          localStorage.setItem("campaignHistory", JSON.stringify(campaignHistory));
+        } catch (e) {
+          campaignHistory[idx].imageBase64 = null;
+          console.warn("localStorage quota exceeded; image not saved for slot", idx);
+        }
+      }
+    })
+    .catch(e => console.warn("Image blob capture failed:", e.message));
+}
+function imageError() {
+  const imgEl = document.getElementById("img-1");
+  // Guard: ignore the initial empty src="" trigger
+  if (!imgEl.src || imgEl.src === window.location.href) return;
+
+  const ph = document.getElementById("img-placeholder-1");
+  ph.innerHTML = `
+    <span>❌</span><span>Image failed to load.</span>
+    <button onclick="retryImage()"
+      style="margin-top:8px;padding:6px 18px;background:var(--accent);color:white;
+      border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">
+      🔄 Retry Image
+    </button>`;
+  ph.style.display = "flex";
+  imgEl.style.display = "none";
+  setBadge("images", "error", "Failed — Retry");
+  document.getElementById("download-btn").style.display = "inline-block";
+}
+function retryImage() {
+  const brief    = document.getElementById("brief").value.trim();
+  const imgStyle = document.getElementById("img-style").value;
+  const ph = document.getElementById("img-placeholder-1");
+  ph.innerHTML = `<span class="spin">⏳</span><span>Retrying...</span>`;
+  ph.style.display = "flex";
+  document.getElementById("img-1").style.display = "none";
+  document.getElementById("img-label-1").style.display = "none";
+  setBadge("images", "generating", "Retrying...");
+  const seed   = Math.floor(Math.random() * 999999);
+  const url    = `${API}/image?prompt=${encodeURIComponent(buildImagePrompt(brief, imgStyle))}&seed=${seed}`;
+  document.getElementById("img-1").src = url;
+  document.getElementById("img-dl-1").href = url;
+}
+
+/* ── Generate ── */
+async function generateCampaign() {
+  const brief    = document.getElementById("brief").value.trim();
+  const tone     = document.getElementById("tone").value;
+  const imgStyle = document.getElementById("img-style").value;
+  if (!brief) { showError("Please enter a campaign brief."); return; }
+  hideError();
+
+  document.getElementById("empty-state").style.display   = "none";
+  document.getElementById("cards-wrap").style.display    = "block";
+  document.getElementById("progress-wrap").style.display = "block";
+  document.getElementById("download-btn").style.display  = "none";
+  document.getElementById("gen-btn").disabled = true;
+
+  ["blog","tweets","instagram","seo"].forEach(p => {
+    const card = document.getElementById("card-" + p);
+    if (card) card.style.display = selectedPlatforms.includes(p) ? "block" : "none";
+    if (selectedPlatforms.includes(p)) {
+      setBadge(p, "generating", "Generating...");
+      const body = document.getElementById("body-" + p);
+      if (body) { body.textContent = "Generating content..."; body.className = "asset-body"; }
+      const cb = document.getElementById("copy-" + p);
+      if (cb) cb.style.display = "none";
+    }
+  });
+
+  document.getElementById("img-placeholder-1").innerHTML = `<span style="font-size:36px;opacity:0.4">🖼️</span><span>Image will appear here</span>`;
+  document.getElementById("img-1").style.display = "none";
+  document.getElementById("img-label-1").style.display = "none";
+  setBadge("images", "waiting", "Waiting");
+  updateMetrics(0, {}, 0);
+  setProgress(5, "Sending request to AI...");
+
+  try {
+    const res = await fetch(`${API}/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brief, tone })
+    });
+    if (!res.ok) throw new Error("Server error: " + res.status);
+    const data = await res.json();
+    if (data.status === "error") {
+      showError(data.message);
+      selectedPlatforms.forEach(p => setBadge(p, "error", "Error"));
+      document.getElementById("gen-btn").disabled = false;
+      return;
+    }
+
+    const allSteps = [
+      { key:"blog",      label:"Blog post ready ✓",         pct:50 },
+      { key:"tweets",    label:"Tweet variants ready ✓",    pct:65 },
+      { key:"instagram", label:"Instagram caption ready ✓", pct:78 },
+      { key:"seo",       label:"SEO metadata ready ✓",      pct:88 },
+    ].filter(s => selectedPlatforms.includes(s.key));
+
+    const content = {};
+    for (let i = 0; i < allSteps.length; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      const { key, label, pct } = allSteps[i];
+      content[key] = data[key];
+      setBody(key, data[key]);
+      setBadge(key, "done", "Done ✓");
+      setProgress(pct, label);
+      updateMetrics(i + 1, content, 0);
+    }
+
+    setProgress(92, "Generating AI campaign image...");
+
+    // ★ Save history FIRST so slot [0] exists before imageLoaded() writes base64 into it
+    saveHistory({
+      brief, tone, imgStyle,
+      timestamp: new Date().toLocaleString(),
+      content: data,
+      platforms: [...selectedPlatforms]
+    });
+
+    // historyIndex=0 because saveHistory() just unshifted this campaign to front
+    generateImage(brief, imgStyle, 0);
+
+  } catch (err) {
+    showError("Cannot connect to server. Make sure FastAPI is running: uvicorn main:app --reload");
+    selectedPlatforms.forEach(p => setBadge(p, "error", "Error"));
+  }
+  document.getElementById("gen-btn").disabled = false;
+}
+
+/* ── History ── */
+function saveHistory(item) {
+  campaignHistory.unshift(item);
+  if (campaignHistory.length > 20) campaignHistory = campaignHistory.slice(0, 20);
+  localStorage.setItem("campaignHistory", JSON.stringify(campaignHistory));
+  renderSidebarHistory();
+}
+function renderSidebarHistory() {
+  const el = document.getElementById("history-list");
+  if (!campaignHistory.length) {
+    el.innerHTML = `<div class="no-history">No campaigns yet.<br/>Generate one to see history here.</div>`;
+    return;
+  }
+  el.innerHTML = campaignHistory.map((h, i) => `
+    <div class="hist-item" onclick="loadHistory(${i})">
+      <div class="h-brief">${h.brief.substring(0,50)}${h.brief.length>50?"...":""}</div>
+      <div class="h-meta">
+        <span class="h-tag">${h.tone}</span>
+        <span>${h.timestamp}</span>
+      </div>
+    </div>`).join("");
+}
+function renderHistoryTab() {
+  const el = document.getElementById("history-full-list");
+  if (!campaignHistory.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--muted);">
+      <div style="font-size:44px;opacity:0.4;margin-bottom:14px">📋</div>
+      <h3 style="color:var(--text);margin-bottom:8px">No History Yet</h3>
+      Go to Generate tab to create your first campaign.
+    </div>`;
+    return;
+  }
+  el.innerHTML = campaignHistory.map((h, i) => `
+    <div class="hist-full-item" onclick="loadHistory(${i}); switchTab('generate')">
+      <div class="hist-full-header">
+        <div class="hist-full-brief">${h.brief.substring(0,80)}${h.brief.length>80?"...":""}</div>
+        <div class="hist-full-meta">${h.timestamp}</div>
+      </div>
+      <div class="hist-tags">
+        <span class="h-tag">🎯 ${h.tone}</span>
+        <span class="h-tag">🖼 ${h.imgStyle||"photorealistic"}</span>
+      </div>
+      <div class="hist-preview">${(h.content?.blog||"").substring(0,150)}...</div>
+    </div>`).join("");
+}
+function loadHistory(i) {
+  const h = campaignHistory[i];
+  if (!h) return;
+  document.getElementById("brief").value     = h.brief || "";
+  document.getElementById("tone").value      = h.tone || "professional";
+  document.getElementById("img-style").value = h.imgStyle || "photorealistic";
+  updateCharCount();
+  document.getElementById("empty-state").style.display  = "none";
+  document.getElementById("cards-wrap").style.display   = "block";
+  document.getElementById("download-btn").style.display = "inline-block";
+  document.getElementById("progress-wrap").style.display = "none";
+  ["blog","tweets","instagram","seo"].forEach(k => {
+    if (h.content?.[k]) {
+      const card = document.getElementById("card-" + k);
+      if (card) card.style.display = "block";
+      setBody(k, h.content[k]);
+      setBadge(k, "done", "Done ✓");
+    }
+  });
+
+  // ★ Show the stored image for THIS history entry
+  const ph    = document.getElementById("img-placeholder-1");
+  const imgEl = document.getElementById("img-1");
+
+  if (h.imageBase64) {
+    // Instant — no network call, unique image per history slot
+    ph.style.display   = "none";
+    imgEl.src          = h.imageBase64;
+    imgEl.style.display                                   = "block";
+    document.getElementById("img-label-1").style.display = "flex";
+    document.getElementById("img-dl-1").href             = h.imageBase64;
+    setBadge("images", "done", "Done ✓");
+    document.getElementById("m-images").textContent = "1 / 1";
+  } else {
+    // Older entry with no stored image — regenerate it and save it this time
+    _pendingImageHistoryIndex = i;
+    ph.innerHTML = `<span class="spin">⏳</span><span>Loading campaign image...</span>`;
+    ph.style.display   = "flex";
+    imgEl.style.display                                   = "none";
+    document.getElementById("img-label-1").style.display = "none";
+    setBadge("images", "generating", "Loading...");
+    const prompt = buildImagePrompt(h.brief || "", h.imgStyle || "photorealistic");
+    const seed   = (i + 1) * 7919;
+    const url    = `${API}/image?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+    imgEl.src = url;
+    document.getElementById("img-dl-1").href = url;
+  }
+
+  document.getElementById("m-status").textContent = "Loaded from history";
+}
+function clearHistory() {
+  if (!confirm("Clear all campaign history?")) return;
+  campaignHistory = [];
+  localStorage.removeItem("campaignHistory");
+  renderSidebarHistory();
+  renderHistoryTab();
+}
+
+/* ── Copy ── */
+function copyText(bodyId, btnId) {
+  const text = document.getElementById(bodyId).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    const orig = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+/* ── Download ── */
+function downloadAll() {
+  const keys   = ["blog","tweets","instagram","seo"];
+  const labels = {blog:"BLOG POST",tweets:"TWEET VARIANTS",instagram:"INSTAGRAM CAPTION",seo:"SEO METADATA"};
+  let out = "==============================\n  AI GENERATED CAMPAIGN CONTENT\n==============================\n\n";
+  out += `Brief: ${document.getElementById("brief").value}\n\n`;
+  keys.filter(k => selectedPlatforms.includes(k)).forEach(k => {
+    out += `--- ${labels[k]} ---\n`;
+    out += document.getElementById("body-" + k).textContent + "\n\n";
+  });
+  const a = document.createElement("a");
+  a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(out);
+  a.download = "campaign_content.txt";
+  a.click();
+}
+
+/* ── Reset ── */
+function resetAll() {
+  document.getElementById("brief").value = "";
+  document.getElementById("progress-wrap").style.display = "none";
+  document.getElementById("download-btn").style.display  = "none";
+  document.getElementById("cards-wrap").style.display    = "none";
+  document.getElementById("empty-state").style.display   = "block";
+  document.getElementById("gen-btn").disabled = false;
+  document.getElementById("char-count").textContent = "0";
+  hideError();
+  ["blog","tweets","instagram","seo"].forEach(p => {
+    setBadge(p, "waiting", "Waiting");
+    const body = document.getElementById("body-" + p);
+    if (body) { body.textContent = "Generating content..."; body.className = "asset-body"; }
+    const cb = document.getElementById("copy-" + p);
+    if (cb) cb.style.display = "none";
+  });
+  document.getElementById("img-placeholder-1").innerHTML = `<span style="font-size:36px;opacity:0.4">🖼️</span><span>Image will appear here</span>`;
+  document.getElementById("img-1").style.display = "none";
+  document.getElementById("img-label-1").style.display = "none";
+  setBadge("images", "waiting", "Waiting");
+  updateMetrics(0, {}, 0);
+  document.getElementById("m-status").textContent = "Waiting";
+}
+
+checkHealth();
+renderSidebarHistory();
+</script>
+</body>
+</html>
